@@ -1,0 +1,54 @@
+﻿@model List<MCV_Fantasy_Bzaar.Models.BookDetails>
+@{
+    bool isStaff = ViewBag.IsStaff ?? false;
+}
+
+<h2>Encyclopedia @(isStaff ? "(Staff View)" : "(Public View)")</h2>
+
+<form asp-action="Search" method="post">
+    <input type="hidden" name="isStaff" value="@isStaff.ToString().ToLower()" />
+    <input type="text" name="query" placeholder="Search by title" />
+    <input type="text" name="author" placeholder="Author" />
+    <input type="text" name="genre" placeholder="Genre" />
+    <button type="submit">Search</button>
+</form>
+
+@if (isStaff)
+{
+    <a asp-action="Analytics" class="btn btn-info">View Real-Time Analytics</a>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Genre</th>
+            <th>Status</th>
+            @if (isStaff)
+            {
+                <th>Actions</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var comic in Model)
+        {
+            <tr style="@(comic.IsFlagged ? "background-color: #ffe6e6;" : "")">
+                <td>@comic.Title</td>
+                <td>@comic.AuthorName</td>
+                <td>@comic.Genre</td>
+                <td>@(comic.IsFlagged ? "⚠️ Flagged for Review" : "Verified")</td>
+                @if (isStaff)
+                {
+                    <td>
+                        <form asp-action="Flag" method="post">
+                            <input type="hidden" name="title" value="@comic.Title" />
+                            <button type="submit" class="btn btn-sm btn-danger">Flag Record</button>
+                        </form>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
