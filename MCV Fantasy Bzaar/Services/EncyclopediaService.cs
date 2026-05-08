@@ -1,77 +1,82 @@
 ﻿using MCV_Fantasy_Bzaar.Models;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace MCV_Fantasy_Bzaar.Services
 {
     public class EncyclopediaService
     {
-        private readonly CSVDataLoader _loader;
-        public List<BookDetails> AllComics { get; private set; }
-        public Dictionary<string, int> SearchQueriesCounter { get; private set; } = new();
-        public Dictionary<string, int> ComicAppearanceCounter { get; private set; } = new();
+        public List<BookDetails> AllComics { get; set; } = new List<BookDetails>();
+        public Dictionary<string, int> SearchCounts { get; set; } = new Dictionary<string, int>();
 
-        public EncyclopediaService(string csvPath)
+        // Here I set up the file paths for the flagged titles and the CSV dataset
+        private readonly string _flagFilePath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "flagged_titles.txt");
+        private readonly string _csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "titles.csv");
+
+        public EncyclopediaService()
         {
-            _loader = new CSVDataLoader(csvPath);
-            LoadData();
+            // Here I load the dataset from the CSV file and then call the function to load any flagged status from the text file
+            var loader = new CSVDataLoader(_csvPath);
+            AllComics = loader.LoadData().ToList();
+
+            LoadFlaggedStatus();
         }
 
-        private void LoadData()
+        private void LoadFlaggedStatus()
         {
-            var rawData = _loader.LoadData().ToList();
-    
-            AllComics = rawData.GroupBy(c => c.Title)
-                .Select(g => new BookDetails
+            if (File.Exists(_flagFilePath))
+            {
+                var flaggedTitles = File.ReadAllLines(_flagFilePath);
+                foreach (var t in flaggedTitles)
                 {
-                    Title = g.Key,
-                    Othertitles = string.Join("; ", g.Select(x => x.Othertitles).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                    AuthorName = string.Join("; ", g.Select(x => x.AuthorName).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                    Genre = string.Join("; ", g.Select(x => x.Genre).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                    DateOfPublication = string.Join("; ", g.Select(x => x.DateOfPublication).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                    Languages = string.Join("; ", g.Select(x => x.Languages).Where(l => !string.IsNullOrWhiteSpace(l)).SelectMany(l => l.Split(';')).Select(l => l.Trim()).Distinct()),
-                    ISBN = string.Join("; ", g.Select(x => string.IsNullOrWhiteSpace(x.ISBN) ? "missing" : x.ISBN).Distinct())
-                }).ToList();
+                    // Here I loop through the flagged titles and mark the corresponding records in AllComics as flagged,
+                    // so that this status is the same even after a restart of the application
+                    var book = AllComics.FirstOrDefault(b => b.Title == t);
+                    if (book != null) book.IsFlagged = true;
+                }
+            }
         }
 
         public List<BookDetails> SearchAndTrack(string query, string author, string year, string genre, string lang)
         {
-            if (!string.IsNullOrWhiteSpace(query))
+            // Here I track the search counts for the main search box, so that users can later find out the most popular search terms in the UI
+            if (!string.IsNullOrEmpty(query))
             {
-                string key = query.ToLower().Trim();
-                SearchQueriesCounter[key] = SearchQueriesCounter.GetValueOrDefault(key) + 1;
+                var cleanQuery = query.Trim().ToLower();
+                if (SearchCounts.ContainsKey(cleanQuery)) SearchCounts[cleanQuery]++;
+                else SearchCounts[cleanQuery] = 1;
             }
 
-            var results = AllComics.AsEnumerable();
+            var results = AllComics.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(query))
-                results = results.Where(c => c.Title != null && c.Title.Contains(query, StringComparison.OrdinalIgnoreCase));
+            // Here I apply the search filters based on the provided parameters, using case-insensitive comparisons for string
+            // fields and a year filter that checks if the year is contained in the DateOfPublication field, which allows for more flexible searching
+            if (!string.IsNullOrEmpty(query))
+                results = results.Where(b => b.Title.Contains(query, System.StringComparison.OrdinalIgnoreCase));
 
-            if (!string.IsNullOrWhiteSpace(author))
-                results = results.Where(c => c.AuthorName != null && c.AuthorName.Contains(author, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(author))
+                results = results.Where(b => b.AuthorName.Contains(author, System.StringComparison.OrdinalIgnoreCase));
 
-            if (!string.IsNullOrWhiteSpace(year))
-                results = results.Where(c => c.DateOfPublication != null && c.DateOfPublication.Contains(year, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(year))
+                results = results.Where(b => b.DateOfPublication.Contains(year));
 
-            if (!string.IsNullOrWhiteSpace(genre))
-                results = results.Where(c => c.Genre != null && c.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(genre))
+                results = results.Where(b => b.Genre.Contains(genre, System.StringComparison.OrdinalIgnoreCase));
 
-            if (!string.IsNullOrWhiteSpace(lang))
-                results = results.Where(c => c.Languages != null && c.Languages.Contains(lang, StringComparison.OrdinalIgnoreCase));
-
-            var finalResults = results.ToList();
-
-            foreach (var book in finalResults)
-            {
-                ComicAppearanceCounter[book.Title] = ComicAppearanceCounter.GetValueOrDefault(book.Title) + 1;
-            }
-
-            return finalResults;
+            return results.Take(100).ToList();
         }
 
         public void FlagRecord(string title)
         {
             var book = AllComics.FirstOrDefault(b => b.Title == title);
-            if (book != null) book.IsFlagged = true;
+            if (book != null)
+            {
+                book.IsFlagged = true;
+                // Here I check if the title is already in the flagged titles file, and if not,
+                // I attach it to the file so that the flagged status is saved for future sessions
+                File.AppendAllLines(_flagFilePath, new[] { title });
+            }
         }
     }
 }

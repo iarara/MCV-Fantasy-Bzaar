@@ -19,6 +19,7 @@ namespace MCV_Fantasy_Bzaar.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
+            // Here I have created an Error action that returns an Error view with an instance of the ErrorViewModel
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }

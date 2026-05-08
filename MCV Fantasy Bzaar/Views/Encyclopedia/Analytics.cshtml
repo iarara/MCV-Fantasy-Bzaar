@@ -1,0 +1,25 @@
+﻿@model List<KeyValuePair<string, int>>
+
+<h2>Staff Dashboard: Search Analytics</h2>
+<p>This page shows the most popular search terms entered by kiosk users.</p>
+
+<table border="1" style="width: 50%; border-collapse: collapse;">
+    <thead>
+        <tr style="background-color: #eee;">
+            <th>Search Word</th>
+            <th>Times Searched</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var entry in Model)
+        {
+            <tr>
+                <td>@entry.Key</td>
+                <td>@entry.Value</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<br />
+<a asp-action="Index" asp-route-isStaff="true">Back to Encyclopedia</a>

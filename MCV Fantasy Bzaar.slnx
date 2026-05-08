@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="MCV Fantasy Bzaar/MCV Fantasy Bzaar.csproj" />
+  <Project Path="MCV_Fantasy_Bzaar.Tests/MCV_Fantasy_Bzaar.Tests.csproj" Id="a0acd020-a12c-43b1-b3f0-4a5e677d695c" />
 </Solution>

@@ -1,54 +1,126 @@
-﻿@model List<MCV_Fantasy_Bzaar.Models.BookDetails>
+﻿@model IEnumerable<MCV_Fantasy_Bzaar.Models.BookDetails>
 @{
     bool isStaff = ViewBag.IsStaff ?? false;
 }
 
-<h2>Encyclopedia @(isStaff ? "(Staff View)" : "(Public View)")</h2>
+<h2 style="font-family: Arial; margin-bottom: 20px;">Fantasy Bzaar Book Search @(isStaff ? "(Staff View)" : "")</h2>
 
-<form asp-action="Search" method="post">
-    <input type="hidden" name="isStaff" value="@isStaff.ToString().ToLower()" />
-    <input type="text" name="query" placeholder="Search by title" />
-    <input type="text" name="author" placeholder="Author" />
-    <input type="text" name="genre" placeholder="Genre" />
-    <button type="submit">Search</button>
-</form>
-
-@if (isStaff)
+@if (TempData["Message"] != null)
 {
-    <a asp-action="Analytics" class="btn btn-info">View Real-Time Analytics</a>
+    <div style="background-color: #d4edda; padding: 10px; border: 1px solid green; margin-bottom: 15px;">
+        @TempData["Message"]
+    </div>
 }
 
-<table class="table">
-    <thead>
+<div style="border: 1px solid #333; padding: 20px; background-color: #f9f9f9; margin-bottom: 25px;">
+    <h4 style="margin-top: 0;">Search Filters</h4>
+    <form asp-action="Search" method="post">
+        <input type="hidden" name="isStaff" value="@isStaff.ToString().ToLower()" />
+        
+        Title: <input type="text" name="query" style="margin-right: 10px;" />
+        Author: <input type="text" name="author" style="margin-right: 10px;" />
+        Year: <input type="text" name="year" style="width: 60px; margin-right: 10px;" />
+        Genre: <input type="text" name="genre" style="width: 100px;" />
+
+        <button type="submit" style="padding: 3px 15px; cursor: pointer; margin-left: 10px;">Search</button>
+        <a asp-action="Index" asp-route-isStaff="@isStaff" style="margin-left: 10px; font-size: 0.9em;">Reset</a>
+    </form>
+</div>
+
+<div style="margin-bottom: 15px;">
+    @if (isStaff)
+    {
+        <a asp-action="Analytics" style="font-weight: bold;">Manager Dashboard</a> <span> | </span>
+        <a asp-action="Logout">Log Out</a>
+    }
+    else
+    {
+        <a asp-action="Login" style="color: gray; font-size: 0.8em; text-decoration: none;">Staff Login</a>
+    }
+</div>
+
+<table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse; background-color: white;">
+    <thead style="background-color: #eee;">
         <tr>
-            <th>Title</th>
+            <th>Book Title</th>
+            <th>Other Titles</th>
             <th>Author</th>
+            <th>ISBN</th>
+            <th>Year</th>
             <th>Genre</th>
             <th>Status</th>
-            @if (isStaff)
-            {
-                <th>Actions</th>
-            }
+            @if (isStaff) { <th>Admin</th> }
         </tr>
     </thead>
     <tbody>
-        @foreach (var comic in Model)
+        @foreach (var item in Model)
         {
-            <tr style="@(comic.IsFlagged ? "background-color: #ffe6e6;" : "")">
-                <td>@comic.Title</td>
-                <td>@comic.AuthorName</td>
-                <td>@comic.Genre</td>
-                <td>@(comic.IsFlagged ? "⚠️ Flagged for Review" : "Verified")</td>
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.Othertitles</td>
+                <td>@item.AuthorName</td>
+                <td>@item.ISBN</td>
+                <td>@item.DateOfPublication</td>
+                <td>@item.Genre</td>
+                <td>
+                    @if (isStaff && item.IsFlagged)
+                    {
+                        <span style="color: red; font-weight: bold;">FLAGGED</span>
+                    }
+                    else
+                    {
+                        <span style="color: green;">Verified</span>
+                    }
+                </td>
                 @if (isStaff)
                 {
                     <td>
-                        <form asp-action="Flag" method="post">
-                            <input type="hidden" name="title" value="@comic.Title" />
-                            <button type="submit" class="btn btn-sm btn-danger">Flag Record</button>
-                        </form>
+                        @if (!item.IsFlagged)
+                        {
+                            <form asp-action="Flag" method="post">
+                                <input type="hidden" name="title" value="@item.Title" />
+                                <button type="submit" style="font-size: 0.8em;">Flag</button>
+                            </form>
+                        }
                     </td>
                 }
             </tr>
         }
     </tbody>
 </table>
+
+<hr style="margin-top: 40px;" />
+
+<div id="lwc-extension" style="padding: 20px; background-color: #f0f4f8; border: 2px solid #0056b3; border-radius: 8px;">
+    <h3 style="color: #0056b3; margin-top: 0;">LWC Operations: Regional Warehouse Hub</h3>
+    <p style="font-size: 0.9em; color: #555;">Real-time location data for inventory distribution.</p>
+    
+    <div id="map" style="height: 400px; width: 100%; border: 1px solid #333; background-color: #ddd;">
+        <p style="padding: 20px; text-align: center;">Initializing Map Extension...</p>
+    </div>
+</div>
+
+<script>
+    function initMap() {
+        console.log("Initializing LWC Map...");
+        try {
+            var lwcHub = { lat: 53.4808, lng: -2.2426 };
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 12,
+                center: lwcHub,
+                mapTypeId: 'roadmap'
+            });
+
+            var marker = new google.maps.Marker({
+                position: lwcHub,
+                map: map,
+                title: 'LWC Manchester Distribution Center'
+            });
+        } catch (error) {
+            console.error("Map initialization failed:", error);
+            document.getElementById('map').innerHTML = '<p style="padding:20px;">Map failed to load. Please check API configuration.</p>';
+        }
+    }
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=@ViewBag.ApiKey&callback=initMap" async defer></script>
