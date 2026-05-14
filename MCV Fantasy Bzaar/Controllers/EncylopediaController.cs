@@ -22,8 +22,10 @@ namespace MCV_Fantasy_Bzaar.Controllers
             // Here, I'm keeping track of the staff status so the view knows whether to show Admin buttons or not
             ViewBag.IsStaff = isStaff;
 
+            // Below I pass the Google Maps API key from the configuration to the view so it can be used in JavaScript for the map functionality.
+            // This way, I only have to manage the API key in one place (appsettings.json) and it can be easily accessed in any view that needs it without hardcoding it in multiple places.
             ViewBag.ApiKey = _configuration["GoogleMaps:ApiKey"];
-
+            
             var model = _encyclopedia.AllComics;
             return View(model ?? new List<BookDetails>());
 
@@ -35,6 +37,8 @@ namespace MCV_Fantasy_Bzaar.Controllers
             // Here I pass all search box inputs through to the filtering service
             ViewBag.IsStaff = isStaff;
 
+            // And again, I pass the Google Maps API key to the view for use in JavaScript. This allows the search results page to
+            // also have map functionality if needed, without having to duplicate the API key in multiple places.
             ViewBag.ApiKey = _configuration["GoogleMaps:ApiKey"];
 
             var results = _encyclopedia.SearchAndTrack(query, author, year, genre, null);
