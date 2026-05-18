@@ -16,42 +16,42 @@ namespace MCV_Fantasy_Bzaar.Controllers
             _encyclopedia = encyclopedia;
             _configuration = configuration;
         }
-
-        public ActionResult Index(bool isStaff = false)
-        { 
-            // Here, I'm keeping track of the staff status so the view knows whether to show Admin buttons or not
+        private void PopulateApiConfiguration(bool isStaff, bool isClientAuthenticated)
+        {
             ViewBag.IsStaff = isStaff;
-
-            // Below I pass the Google Maps API key from the configuration to the view so it can be used in JavaScript for the map functionality.
-            // This way, I only have to manage the API key in one place (appsettings.json) and it can be easily accessed in any view that needs it without hardcoding it in multiple places.
+            ViewBag.IsClientAuthenticated = isClientAuthenticated;
             ViewBag.ApiKey = _configuration["GoogleMaps:ApiKey"];
-            
+            ViewBag.GoogleClientId = _configuration["GoogleOAuth:ClientId"];
+            ViewBag.EmailJSPublicKey = _configuration["EmailJS:PublicKey"];
+            ViewBag.EmailJSServiceId = _configuration["EmailJS:ServiceId"];
+            ViewBag.EmailJSTemplateId = _configuration["EmailJS:TemplateId"];
+        }
+
+        public ActionResult Index(bool isStaff = false, bool isClientAuthenticated = false)
+        {
+            PopulateApiConfiguration(isStaff, isClientAuthenticated);
+
             var model = _encyclopedia.AllComics;
             return View(model ?? new List<BookDetails>());
 
         }
 
         [HttpPost]
-        public ActionResult Search(string query, string author, string year, string genre, bool isStaff = false)
+        public ActionResult Search(string query, string author, string year, string genre, bool isStaff = false, bool isClientAuthenticated = false)
         {
-            // Here I pass all search box inputs through to the filtering service
-            ViewBag.IsStaff = isStaff;
-
-            // And again, I pass the Google Maps API key to the view for use in JavaScript. This allows the search results page to
-            // also have map functionality if needed, without having to duplicate the API key in multiple places.
-            ViewBag.ApiKey = _configuration["GoogleMaps:ApiKey"];
+            PopulateApiConfiguration(isStaff, isClientAuthenticated);
 
             var results = _encyclopedia.SearchAndTrack(query, author, year, genre, null);
             return View("Index", results);
         }
 
         [HttpPost]
-        public ActionResult Flag(string title)
+        public ActionResult Flag(string title, bool isClientAuthenticated = false)
         {
             // Here is the function so staff can flag records which saves them into a text file and marks them as flagged in the UI, even after a restart
             _encyclopedia.FlagRecord(title);
             TempData["Message"] = $"Success: '{title}' has been flagged.";
-            return RedirectToAction("Index", new { isStaff = true });
+            return RedirectToAction("Index", new { isStaff = true, isClientAuthenticated = isClientAuthenticated });
         }
 
         public ActionResult Analytics()
